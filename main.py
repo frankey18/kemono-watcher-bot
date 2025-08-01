@@ -53,4 +53,6 @@ def home():
 
 if __name__ == "__main__":
     threading.Thread(target=check_update, daemon=True).start()
-    app.run(host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))  # 取用 Render 指定的 PORT
+    app.run(host="0.0.0.0", port=port)
+
