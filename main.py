@@ -41,3 +41,6 @@ def home():
 if __name__ == "__main__":
     threading.Thread(target=check_update).start()
     app.run(host="0.0.0.0", port=8000)
+
+if not TELEGRAM_BOT_TOKEN or not TELEGRAM_USER_ID:
+    raise ValueError("⚠️ TELEGRAM_BOT_TOKEN 或 USER_ID 未設定")
