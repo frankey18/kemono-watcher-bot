@@ -62,5 +62,6 @@ def home():
     return "✅ Kemono Watcher is running."
 
 if __name__ == "__main__":
+    send_telegram_message("📣 AI_Omaga 監控啟動成功，開始檢查更新。")
     threading.Thread(target=check_update).start()
     app.run(host="0.0.0.0", port=8000)
