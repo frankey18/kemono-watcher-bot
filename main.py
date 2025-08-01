@@ -9,41 +9,51 @@ app = Flask(__name__)
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_USER_ID = os.getenv("TELEGRAM_USER_ID")
-CHECK_URL = "https://kemono.cr/patreon/user/135474437"
 
-if not TELEGRAM_BOT_TOKEN or not TELEGRAM_USER_ID:
-    raise ValueError("❌ TELEGRAM_BOT_TOKEN 或 TELEGRAM_USER_ID 未設定")
-
-last_content = ""
+CHECK_URL = "https://kemono.cr/artists?q=ai_oma&service=patreon&sort_by=updated&order="
+TARGET_CREATOR = "AI_Omaga"
+last_update = ""
 
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_USER_ID, "text": message}
     try:
-        res = requests.post(url, data=payload)
-        print("📨 發送通知結果：", res.status_code, res.text)
+        requests.post(url, data=payload)
     except Exception as e:
-        print("❌ 發送通知失敗：", e)
+        print("❌ Telegram 發送失敗:", e)
 
 def check_update():
-    global last_content
+    global last_update
     while True:
         try:
+            print("🔍 檢查更新中...")
             res = requests.get(CHECK_URL)
             soup = BeautifulSoup(res.text, "html.parser")
+            cards = soup.select("div.card--user")
 
-            # 抓取整頁前段內容作為比較依據
-            main_area = soup.find("main")
-            new_content = (main_area.get_text(strip=True) if main_area else soup.get_text(strip=True))[:500]
+            found = False
 
-            if new_content != last_content:
-                print("🔔 發現新內容，發送通知...")
-                send_telegram_message("🚨 Kemono 網頁有更新囉！")
-                last_content = new_content
-            else:
-                print("✅ 無更新")
+            for card in cards:
+                name_tag = card.select_one(".user-card__name")
+                if name_tag and name_tag.text.strip() == TARGET_CREATOR:
+                    time_tag = card.select_one(".user-card__updated time")
+                    if time_tag and time_tag.has_attr("datetime"):
+                        current_update = time_tag["datetime"]
+                        print(f"📅 {TARGET_CREATOR} 最新更新時間：{current_update}")
+
+                        if current_update != last_update:
+                            send_telegram_message(f"🆕 {TARGET_CREATOR} 有新更新囉！\n{CHECK_URL}")
+                            last_update = current_update
+                        else:
+                            print("⏸ 沒有更新。")
+                        found = True
+                    break
+
+            if not found:
+                print(f"⚠️ 沒有找到創作者：{TARGET_CREATOR}")
+
         except Exception as e:
-            print("❌ 發生錯誤：", e)
+            print("❌ 檢查時出錯：", e)
 
         time.sleep(600)  # 每 10 分鐘檢查一次
 
@@ -52,7 +62,5 @@ def home():
     return "✅ Kemono Watcher is running."
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # 取用 Render 指定的 PORT
-    threading.Thread(target=check_update, daemon=True).start()
-    app.run(host="0.0.0.0", port=port)
-
+    threading.Thread(target=check_update).start()
+    app.run(host="0.0.0.0", port=8000)
