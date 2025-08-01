@@ -24,12 +24,14 @@ def check_update():
         try:
             res = requests.get(CHECK_URL)
             soup = BeautifulSoup(res.text, "html.parser")
-            new_content = soup.find("div", {"class": "updates"}).text.strip()  # 請根據實際網頁調整
+            new_content = soup.get_text(strip=True)[:500]  # 抓前段內容比較
             if new_content != last_content:
-                send_telegram_message("Kemono 網頁有更新囉！")
+                send_telegram_message("🚨 Kemono 網頁有更新囉！")
                 last_content = new_content
+            else:
+                print("✅ 無更新")
         except Exception as e:
-            print("Error checking updates:", e)
+            print("❌ 發生錯誤：", e)
         time.sleep(600)  # 每 10 分鐘檢查一次
 
 @app.route("/")
